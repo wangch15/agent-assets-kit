@@ -6,32 +6,90 @@ Project-local rules, skills, commands, and knowledge sync for coding agents.
 
 Agent Assets Kit initializes a `.ai/` canonical source in your repository, then syncs that content into official agent entrypoints such as `AGENTS.md` and `CLAUDE.md`, plus tool-specific folders such as `.codex/`, `.claude/`, `.agent/`, and `.agents/`.
 
-This project is not published to the npm registry yet. Use it directly from GitHub.
+This project is not published to the npm registry yet. The recommended setup flow is to paste the setup prompt below into your coding agent and let it initialize the project safely.
 
 ## Quick Start
 
-Run the setup command from the target project root:
+Open your target project in a coding agent, then paste this prompt:
 
-```bash
+```text
+Set up Agent Assets Kit in this repository.
+
+Use this GitHub package, not the npm registry:
+
 pnpm dlx github:wangch15/agent-assets-kit setup
+
+Please handle the setup safely:
+
+1. Confirm the repository root and run `git status --short`.
+2. Inspect existing agent files before changing anything:
+   - AGENTS.md
+   - CLAUDE.md
+   - .ai/
+   - .codex/
+   - .claude/
+   - .agent/
+   - .agents/
+3. Inspect the project enough to write useful project context:
+   - README files
+   - package.json or equivalent project metadata
+   - main app/package folders
+   - common test, lint, build, and dev commands
+4. Run a dry run first:
+
+   pnpm dlx github:wangch15/agent-assets-kit setup --dry-run
+
+5. If existing AGENTS.md or CLAUDE.md contains hand-maintained guidance, do not overwrite it blindly. Move the relevant content into `.ai/entrypoints/project-context.md` or `.ai/rules/*.md`, or ask me before proceeding.
+6. Run setup without syncing entrypoints yet:
+
+   pnpm dlx github:wangch15/agent-assets-kit setup --no-sync
+
+7. Edit `.ai/entrypoints/project-context.md` so it accurately describes this project.
+8. Add any project-specific shared rules under `.ai/rules/` only when they are clearly useful for future agents.
+9. Run the local sync command:
+
+   pnpm sync:agent-assets
+
+   If this project has no package.json or no pnpm script, run:
+
+   node scripts/sync-agent-assets.mjs
+
+10. Run:
+
+   pnpm dlx github:wangch15/agent-assets-kit doctor
+
+11. Show me the files changed, summarize the initialized agent workflow, and mention any existing guidance that needed migration.
 ```
 
-For a fork or another owner:
+For a fork or another owner, replace the GitHub package:
 
 ```bash
 pnpm dlx github:<owner>/agent-assets-kit setup
 ```
 
-To initialize a specific project path:
+## Agent Setup Prompt
 
-```bash
-pnpm dlx github:wangch15/agent-assets-kit setup --cwd /path/to/project
+The setup prompt is intentionally the primary installation path. Agent initialization is safer than a blind installer because every project has different existing agent files, conventions, package manager scripts, and project-specific knowledge.
+
+Use the prompt above when you want the agent to initialize the current repository. If you want the agent to initialize another path, add this line to the prompt:
+
+```text
+The target project path is: /path/to/project
 ```
 
-Preview changes before writing files:
+Then ask the agent to add `--cwd /path/to/project` to the `setup` and `doctor` commands.
+
+## Manual Command Reference
+
+You can still run the commands yourself when you already understand the changes:
 
 ```bash
+pnpm dlx github:wangch15/agent-assets-kit setup
 pnpm dlx github:wangch15/agent-assets-kit setup --dry-run
+pnpm dlx github:wangch15/agent-assets-kit setup --no-sync
+pnpm dlx github:wangch15/agent-assets-kit setup --force
+pnpm dlx github:wangch15/agent-assets-kit sync
+pnpm dlx github:wangch15/agent-assets-kit doctor
 ```
 
 ## What Setup Creates
@@ -65,16 +123,6 @@ If the target project has `package.json`, setup also adds:
     "sync:agent-assets": "node scripts/sync-agent-assets.mjs"
   }
 }
-```
-
-## Commands
-
-```bash
-pnpm dlx github:wangch15/agent-assets-kit setup
-pnpm dlx github:wangch15/agent-assets-kit setup --dry-run
-pnpm dlx github:wangch15/agent-assets-kit setup --force
-pnpm dlx github:wangch15/agent-assets-kit sync
-pnpm dlx github:wangch15/agent-assets-kit doctor
 ```
 
 After setup, use the local sync script from inside the target project:
@@ -122,6 +170,8 @@ Rules should be classified as:
 
 ## Safety Model
 
+- The recommended prompt tells the agent to inspect existing agent files before syncing.
+- `setup --no-sync` lets the agent customize `.ai/entrypoints/project-context.md` before generating `AGENTS.md` and `CLAUDE.md`.
 - Existing template-managed files are skipped by default.
 - Use `--dry-run` to preview setup writes.
 - Use `--force` only when you want to overwrite existing template-managed files.
