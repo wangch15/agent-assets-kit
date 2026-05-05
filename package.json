@@ -1,0 +1,22 @@
+{
+  "name": "agent-assets-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Project-local rules, skills, commands, and knowledge sync for coding agents.",
+  "type": "module",
+  "bin": {
+    "agent-assets-kit": "./bin/agent-assets-kit.mjs"
+  },
+  "scripts": {
+    "check": "node --check bin/agent-assets-kit.mjs && node --check templates/default/scripts/sync-agent-assets.mjs",
+    "smoke": "node bin/agent-assets-kit.mjs --help"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wangch15/agent-assets-kit.git"
+  },
+  "license": "MIT"
+}
