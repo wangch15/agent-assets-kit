@@ -147,7 +147,7 @@ node scripts/sync-agent-assets.mjs
 
 ## Rule Folder Pattern
 
-對於需要長期保存的專案知識，先建立 local canonical docs：
+對於需要長期保存的專案知識，使用「短全域 reference + 靠近實作的 local rule index」。reference 讓 agent 找得到規則；local docs 才是 domain knowledge 的主要儲存地。
 
 ```text
 <target-root>/docs/<area>-rules.md
@@ -156,17 +156,34 @@ node scripts/sync-agent-assets.mjs
   <topic>.md
 ```
 
-再建立全域 agent reference：
+當 future agents 必須在修改相關程式前讀取這些規則時，再建立全域 agent reference：
 
 ```text
 .ai/rules/<area>-rules-reference.md
 ```
+
+reference 應定義觸發路徑、canonical source 與讀取順序，不應變成完整規則內容的主要儲存地。
+
+本地 `<area>-rules.md` 應作為 local rule index，至少包含：
+
+- 適用範圍
+- 文件導覽
+- 如何查找規則
+- 維護原則
+
+對於複雜區域，可額外加入導覽與歷史結構：
+
+- `Change-Type Matrix`：依任務類型對應必讀文件。
+- `cases/`：bug 背景、復現脈絡、歷史踩坑與修正決策。
+- `appendix/`：長版參考、舊完整敘述、schema 範例或表格。
 
 規則建議分類為：
 
 - `Invariant`：不可破壞的硬規則
 - `Decision`：目前採用的設計決策
 - `Open Question`：尚未定義完成、agent 不應自行猜測的事項
+
+重要 `Invariant` 與 `Decision` 應盡量附上測試或驗證步驟；若尚無自動化保護，標明 `docs-only risk`。
 
 ## 安全策略
 

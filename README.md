@@ -147,7 +147,7 @@ node scripts/sync-agent-assets.mjs
 
 ## Rule Folder Pattern
 
-For long-lived project knowledge, create local canonical docs:
+For long-lived project knowledge, use a short global reference plus a local rule index near the owning code. The reference helps agents discover the rule set; the local docs hold the actual domain knowledge.
 
 ```text
 <target-root>/docs/<area>-rules.md
@@ -156,17 +156,34 @@ For long-lived project knowledge, create local canonical docs:
   <topic>.md
 ```
 
-Then add a global agent reference:
+Then add a global agent reference when future agents must read those docs before editing related code:
 
 ```text
 .ai/rules/<area>-rules-reference.md
 ```
+
+The reference should define triggering paths, canonical sources, and read order. It should not become the primary storage for detailed rules.
+
+The local `<area>-rules.md` should work as a local rule index with:
+
+- Scope
+- Navigation
+- How to find rules
+- Maintenance rules
+
+For complex areas, add optional routing and history structure:
+
+- `Change-Type Matrix`: maps task categories to required docs.
+- `cases/`: bug background, reproduction notes, historical traps, and corrective decisions.
+- `appendix/`: long reference material, old full explanations, schema examples, or tables.
 
 Rules should be classified as:
 
 - `Invariant`: a hard rule that must not be broken
 - `Decision`: a current design decision
 - `Open Question`: unresolved behavior that agents must not guess
+
+Important `Invariant` and `Decision` entries should include a test or verification step when practical. If no automated check exists yet, mark it as `docs-only risk`.
 
 ## Safety Model
 
