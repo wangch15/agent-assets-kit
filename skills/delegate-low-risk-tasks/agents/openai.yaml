@@ -1,0 +1,4 @@
+interface:
+  display_name: "Delegate Low-Risk Tasks"
+  short_description: "Split safe implementation work across agents"
+  default_prompt: "Use $delegate-low-risk-tasks to split this plan into retained high-risk work and delegate-ready low-risk prompts."

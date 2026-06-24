@@ -6,7 +6,29 @@ Project-local rules, skills, commands, and knowledge sync for coding agents.
 
 Agent Assets Kit initializes a `.ai/` canonical source in your repository, then syncs that content into official agent entrypoints such as `AGENTS.md` and `CLAUDE.md`, plus tool-specific folders such as `.codex/`, `.claude/`, `.agent/`, and `.agents/`.
 
+It can also store personal global skills under `skills/` and install them into Codex / Claude global skill homes.
+
 This project is not published to the npm registry yet. The recommended setup flow is to paste the setup prompt below into your coding agent and let it initialize the project safely.
+
+## Sync Mechanism
+
+Agent Assets Kit keeps human-maintained agent assets in one canonical place, then generates or links the files each agent runtime expects.
+
+- `.ai/entrypoints/project-context.md` becomes the project-specific context inside `AGENTS.md` and `CLAUDE.md`.
+- `.ai/rules/*.md` are rendered into the shared rules sections of `AGENTS.md` and `CLAUDE.md`.
+- `.ai/skills/*` are synced into `.agent/skills`, `.agents/skills`, `.claude/skills`, and `.codex/skills`.
+- `.ai/commands/*` are copied into tool-specific command folders where supported.
+- `scripts/sync-agent-assets.mjs` prefers symlinks for shared folders and falls back to copying when symlinks are unavailable.
+- `skills/*` at this repo root are personal global skills; `scripts/install-global-skills.mjs` links them into `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`.
+
+In short: project-local knowledge lives under `.ai/`; personal global skills live under this repo's `skills/`; generated entrypoints and tool folders are installation targets.
+
+## Skill Capabilities
+
+| Skill | Location | Capability |
+| --- | --- | --- |
+| `create-rule-folder` | `templates/default/.ai/skills/create-rule-folder` | Helps agents create co-located rule docs near the owning code, add a short `.ai/rules/*-reference.md` trigger, and keep long-lived project knowledge discoverable without bloating `AGENTS.md` / `CLAUDE.md`. |
+| `delegate-low-risk-tasks` | `skills/delegate-low-risk-tasks` | Helps agents review a plan or spec, keep high-risk work with the primary reasoning model, identify low-risk work for cheaper agents, and generate a constrained handoff prompt plus review checklist. |
 
 ## Quick Start
 
@@ -90,6 +112,8 @@ pnpm dlx github:wangch15/agent-assets-kit setup --no-sync
 pnpm dlx github:wangch15/agent-assets-kit setup --force
 pnpm dlx github:wangch15/agent-assets-kit sync
 pnpm dlx github:wangch15/agent-assets-kit doctor
+node scripts/install-global-skills.mjs --dry-run
+pnpm install:global-skills
 ```
 
 ## What Setup Creates
@@ -136,6 +160,37 @@ If the project does not use a package manager:
 ```bash
 node scripts/sync-agent-assets.mjs
 ```
+
+## Global Skills
+
+Global skills are personal, cross-project skills that should be available to Codex and Claude in every repository. Keep them in this repo under `skills/`, not inside a project template, unless every newly initialized project should receive a local copy.
+
+The current tracked global skill is `skills/delegate-low-risk-tasks`.
+
+```text
+skills/
+  delegate-low-risk-tasks/
+    SKILL.md
+    agents/openai.yaml
+scripts/install-global-skills.mjs
+```
+
+Install or update global skill links from this repository:
+
+```bash
+node scripts/install-global-skills.mjs --dry-run
+pnpm install:global-skills
+```
+
+The installer symlinks each tracked skill into:
+
+```text
+~/.agents/skills
+~/.codex/skills
+~/.claude/skills
+```
+
+Use `node scripts/install-global-skills.mjs --force` when an existing skill path should be replaced with the repository-tracked version.
 
 ## Core Workflow
 
