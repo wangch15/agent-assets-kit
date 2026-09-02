@@ -110,11 +110,42 @@ pnpm dlx github:wangch15/agent-assets-kit setup
 pnpm dlx github:wangch15/agent-assets-kit setup --dry-run
 pnpm dlx github:wangch15/agent-assets-kit setup --no-sync
 pnpm dlx github:wangch15/agent-assets-kit setup --force
+pnpm dlx github:wangch15/agent-assets-kit update
+pnpm dlx github:wangch15/agent-assets-kit update --apply
+pnpm dlx github:wangch15/agent-assets-kit update --only create-rule-folder --apply
 pnpm dlx github:wangch15/agent-assets-kit sync
 pnpm dlx github:wangch15/agent-assets-kit doctor
 node scripts/install-global-skills.mjs --dry-run
 pnpm install:global-skills
 ```
+
+## Updating An Installed Project
+
+`setup` never touches a file that already exists, and `setup --force` overwrites every
+template-managed file including ones the project deliberately changed. Neither is what you
+want when the kit ships a new version of a skill. Use `update` instead.
+
+```bash
+pnpm dlx github:wangch15/agent-assets-kit update            # preview
+pnpm dlx github:wangch15/agent-assets-kit update --apply    # write the safe ones
+```
+
+`update` classifies every template file first:
+
+| Status | Meaning | What update does |
+| --- | --- | --- |
+| `add` | the project does not have the file | writes it |
+| `current` | the project copy already matches the template | nothing |
+| `safe` | the project never edited it since install | refreshes it |
+| `conflict` | the project edited it locally | skips it and tells you |
+
+The classification relies on `.ai/.agent-assets-kit.json`, a manifest of content hashes written
+at setup and refreshed on every apply. A project installed before manifests existed still works:
+without a manifest, every differing file is reported as `conflict`, so nothing is overwritten by
+surprise. Run `update --apply` once to start tracking.
+
+Use `--only <substring>` to update one skill at a time, and `--force` to overwrite conflicts
+after you have reviewed them. `doctor` reports the same counts without writing anything.
 
 ## What Setup Creates
 
@@ -247,6 +278,8 @@ Important `Invariant` and `Decision` entries should include a test or verificati
 - Existing template-managed files are skipped by default.
 - Use `--dry-run` to preview setup writes.
 - Use `--force` only when you want to overwrite existing template-managed files.
+- `update` previews by default; it writes only with `--apply`, and never overwrites a locally modified file unless you also pass `--force`.
+- OS metadata files such as `.DS_Store` are never installed into a project.
 - Existing tool-managed preambles before `# AGENTS.md` or `# CLAUDE.md` are preserved.
 - Symlinks are preferred for shared folders; the sync script falls back to copying when symlinks are unavailable.
 

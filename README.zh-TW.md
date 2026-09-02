@@ -110,11 +110,40 @@ pnpm dlx github:wangch15/agent-assets-kit setup
 pnpm dlx github:wangch15/agent-assets-kit setup --dry-run
 pnpm dlx github:wangch15/agent-assets-kit setup --no-sync
 pnpm dlx github:wangch15/agent-assets-kit setup --force
+pnpm dlx github:wangch15/agent-assets-kit update
+pnpm dlx github:wangch15/agent-assets-kit update --apply
+pnpm dlx github:wangch15/agent-assets-kit update --only create-rule-folder --apply
 pnpm dlx github:wangch15/agent-assets-kit sync
 pnpm dlx github:wangch15/agent-assets-kit doctor
 node scripts/install-global-skills.mjs --dry-run
 pnpm install:global-skills
 ```
+
+## 更新已安裝的專案
+
+`setup` 遇到已存在的檔案一律跳過，而 `setup --force` 會覆蓋**所有** template-managed
+files，包含專案刻意改過的那些。kit 端更新了某個 skill 時，這兩種都不是你要的。改用 `update`。
+
+```bash
+pnpm dlx github:wangch15/agent-assets-kit update            # 預覽
+pnpm dlx github:wangch15/agent-assets-kit update --apply    # 只寫入安全的那些
+```
+
+`update` 會先分類每個 template 檔案：
+
+| 狀態 | 意義 | update 的動作 |
+| --- | --- | --- |
+| `add` | 專案還沒有這個檔案 | 寫入 |
+| `current` | 專案版本已與 template 相同 | 不動 |
+| `safe` | 專案安裝後從未改過 | 刷新 |
+| `conflict` | 專案在本地改過 | 跳過並列出來 |
+
+分類依據是 `.ai/.agent-assets-kit.json`——setup 時寫入、每次 apply 時更新的內容 hash 清單。
+manifest 出現之前就安裝的舊專案照樣可用：沒有 manifest 時，所有內容不同的檔案一律歸為
+`conflict`，不會被無預警覆蓋。跑一次 `update --apply` 就會開始追蹤。
+
+用 `--only <substring>` 一次只更新一個 skill；確認過衝突內容後才用 `--force` 覆蓋。
+`doctor` 會回報同一組統計但不寫入任何檔案。
 
 ## Setup 會建立什麼
 
@@ -247,6 +276,8 @@ reference 應定義觸發路徑、canonical source 與讀取順序，不應變�
 - 既有 template-managed files 預設會略過，不會覆蓋。
 - 使用 `--dry-run` 預覽 setup 會寫入哪些檔案。
 - 只有確定要覆蓋既有模板檔時才使用 `--force`。
+- `update` 預設只預覽，加 `--apply` 才寫入；本地改過的檔案除非再加 `--force`，否則絕不覆蓋。
+- `.DS_Store` 這類 OS metadata 檔案不會被安裝進專案。
 - `# AGENTS.md` 或 `# CLAUDE.md` 之前的工具管理前置區塊會被保留。
 - shared folders 預設優先使用 symlink；若環境不支援 symlink，sync script 會 fallback 成 copy。
 

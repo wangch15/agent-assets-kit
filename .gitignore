@@ -1,0 +1,27 @@
+node_modules
+
+# macOS metadata。這條對本 repo 特別重要：templates/ 整棵樹會被複製進使用者專案，
+# 一個混進去的 .DS_Store 會擴散到每個安裝過的專案。
+.DS_Store
+**/.DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# node --test --experimental-test-coverage
+coverage
+
+# Secrets
+.env
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.sw?
