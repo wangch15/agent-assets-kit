@@ -132,7 +132,81 @@ Mainline rules may use rule cards:
 
 Use `docs-only risk` when a rule has no automated enforcement yet.
 
+## Scaling Discipline
+
+The common failure mode in a growing rules folder is not a wrong rule. It is **the index turning into a directory listing**. These rules exist to prevent that.
+
+- `Invariant`: The index routes; it does not catalog. Full listings for `cases/` and `appendix/` belong in a `README.md` inside those folders, not in the index. The index is a fixed cost paid on every task, so embedding a listing makes every change read content unrelated to that change.
+- `Invariant`: Every case must be referenced by at least one mainline rule. A case that only appears in an index is effectively unreachable, because the real lookup path is "index -> the mainline rule named by the Change-Type Matrix -> the case that rule links to". This is also the precondition for the rule above: once the listing moves out, backlinks are the only entry point.
+- `Invariant`: A single Change-Type Matrix row must not list both a summary document and its detail documents. That makes every task read the same material twice. Give the summary document its own row, for the case where the layer of divergence is not yet known.
+- `Invariant`: Every appendix file must be referenced by a mainline rule. An appendix with zero references that declares itself superseded is dead weight and should be deleted; git keeps it recoverable.
+- `Decision`: When a mainline document contains a run of consecutive rule cards on one subject, and that subject has its own trigger conditions, split it into its own document and add a Change-Type Matrix row. The test is "would these cards be read together with the rest of this file", not line count.
+- `Invariant`: Section numbers must be unique within a document, and heading depth must match numbering depth. Numbers collide as content grows. Two real examples found in one repo: a document with two `2.5.1` sections (one at `###`, one at `##`), and another with two `## 3.` sections. Neither raises an error; they just make anchors resolve to the wrong place and make grep unreliable.
+- `Decision`: Rule cards nested under a numbered section are fine; that mix is not the problem. What to avoid is **renumbering rule cards** or letting two numbering schemes compete at the same level. Prefer rule cards for new structure, because their ids do not shift when neighbors are added or removed. Renumbering breaks every anchor into those sections; rule card ids do not.
+
+## Maintenance Health Checks
+
+Run these when reorganizing an existing rules folder, or when one has visibly grown. `<rules-dir>` is `<target-root>/docs/<area>-rules`.
+
+Orphan cases, reachable only from an index:
+
+```bash
+for c in <rules-dir>/cases/*.md; do
+  b=$(basename "$c"); [ "$b" = "README.md" ] && continue
+  [ "$(grep -l "cases/$b" <rules-dir>/*.md 2>/dev/null | wc -l | tr -d ' ')" = "0" ] && echo "orphan: $b"
+done
+```
+
+Duplicate section numbers, which make anchors resolve silently to the wrong place:
+
+```bash
+python3 - <<'EOF'
+import glob, re
+for f in sorted(glob.glob('<rules-dir>/**/*.md', recursive=True)):
+    hs = [l for l in open(f, encoding='utf-8') if re.match(r'^#+ \d+(\.\d+)*[\.\s]', l)]
+    nums = [re.match(r'^#+ ((?:\d+\.)*\d+)', h).group(1).rstrip('.') for h in hs]
+    dup = sorted({n for n in nums if nums.count(n) > 1})
+    if dup:
+        print(f, 'duplicate section numbers:', dup)
+EOF
+```
+
+Per-document reading cost, to decide what to split:
+
+```bash
+find <rules-dir> -name '*.md' -exec wc -c {} + | sort -rn | head -15
+```
+
+Whether internal links and anchors still resolve after a move or a renumber:
+
+```bash
+python3 - <<'EOF'
+import glob, os, re
+ROOT = '<rules-dir>'
+def slug(h):
+    t = h.lstrip('#').strip().lower()
+    return re.sub(r'[^\w\s\u4e00-\u9fff-]', '', t).replace(' ', '-')
+docs = glob.glob(f'{ROOT}/**/*.md', recursive=True) + glob.glob(f'{os.path.dirname(ROOT)}/*.md')
+heads = {p: {slug(l) for l in open(p, encoding='utf-8') if l.startswith('#')} for p in docs}
+bad = []
+for f in docs:
+    base = os.path.dirname(f)
+    src = open(f, encoding='utf-8').read()
+    for link, anchor in re.findall(r'\]\((\.{1,2}/[^)#\s]+\.md)(?:#([^)\s]+))?\)', src):
+        tgt = os.path.normpath(os.path.join(base, link))
+        if not os.path.exists(tgt):
+            bad.append((f, 'missing file', tgt))
+        elif anchor and anchor not in heads.get(tgt, set()):
+            bad.append((f, 'dead anchor', f'{tgt}#{anchor}'))
+print('broken links:', len(bad))
+for b in bad:
+    print(' ', *b)
+EOF
+```
+
 ## Workflow
+
+If this is a reorganization of an **existing** rules folder rather than a new one, run `Maintenance Health Checks` first, decide from `Scaling Discipline` whether to move a listing, add backlinks, or split a file, then enter the relevant steps below.
 
 1. Identify the area name, slug, owner path, related paths, and reason the docs are needed.
 2. Read nearby docs and existing `.ai/rules` references.
@@ -211,5 +285,9 @@ Create a domain-specific command only when that area will be updated frequently.
 - Rules use `Invariant`, `Decision`, or `Open Question` labels.
 - Global agent reference exists or omission is explicitly justified.
 - Old rules were updated in place; contradictions were not appended.
+- The index does not embed a full `cases/` or `appendix/` listing.
+- Every case is referenced by at least one mainline rule.
+- Every appendix file has a mainline reference; no zero-reference files remain.
+- Internal links and anchors were fully validated after any move or renumber.
 - `.ai/` changes were synced.
 - The smallest useful verification command was run.
