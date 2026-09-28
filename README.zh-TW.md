@@ -15,7 +15,11 @@ Agent Assets Kit 是一套專案本地的 agent 規則、技能、指令與知�
 Agent Assets Kit 會把人工維護的 agent assets 放在單一 canonical source，再產生或連結到各個 agent runtime 期待的位置。
 
 - `.ai/entrypoints/project-context.md` 會成為 `AGENTS.md` 與 `CLAUDE.md` 裡的專案脈絡。
-- `.ai/rules/*.md` 會被渲染進 `AGENTS.md` 與 `CLAUDE.md` 的 shared rules 區塊。
+- `.ai/rules/*.md` 會同步到 `.claude/rules`、`.agent/rules`、`.agents/rules`，並在 `AGENTS.md` 與 `CLAUDE.md` 裡產生一份規則索引。每個工具只會拿到一份規則內文：
+  - Claude Code 會自己從 `.claude/rules/` 載入規則內文，所以 `CLAUDE.md` 只放索引。
+  - Codex 只讀 `AGENTS.md`，預設上限 32 KiB，所以 `AGENTS.md` 內嵌常駐規則、只索引依路徑載入的規則。`AGENTS.md` 超過上限時，同步會發出警告。
+  - 有 `paths` frontmatter 的規則會依路徑載入：Claude Code 讀到符合的檔案時才載入；Codex 則會被要求在碰到符合的檔案前先讀它。沒有 `paths` 的規則是常駐規則。
+  - `.codex/rules/` 不是同步目標：Codex 用這個資料夾放 Starlark `.rules` 指令政策，不讀 Markdown。舊版留在那裡的 Markdown 副本，同步時會被清掉。
 - `.ai/skills/*` 會同步到 `.agent/skills`、`.agents/skills`、`.claude/skills`、`.codex/skills`。
 - `.ai/commands/*` 會複製到支援 commands 的 tool-specific 目錄。
 - `scripts/sync-agent-assets.mjs` 預設優先用 symlink，同步環境不支援 symlink 時會 fallback 成 copy。
@@ -157,7 +161,6 @@ manifest 出現之前就安裝的舊專案照樣可用：沒有 manifest 時，�
 scripts/sync-agent-assets.mjs
 AGENTS.md
 CLAUDE.md
-.codex/rules
 .codex/skills
 .claude/rules
 .claude/skills
@@ -246,7 +249,7 @@ installer 會把每個追蹤中的 skill symlink 到：
 .ai/rules/<area>-rules-reference.md
 ```
 
-reference 應定義觸發路徑、canonical source 與讀取順序，不應變成完整規則內容的主要儲存地。
+reference 應定義觸發路徑、canonical source 與讀取順序，不應變成完整規則內容的主要儲存地。觸發路徑也要寫進 `paths` frontmatter，讓 Claude Code 只在讀到符合的檔案時載入，產生的規則索引也能據此指引 Codex。
 
 本地 `<area>-rules.md` 應作為 local rule index，至少包含：
 

@@ -27,12 +27,23 @@ Those folders should be treated as generated targets, symlinks, or tool-specific
 
 ## Official Entrypoints
 
-Agent folder scanning is not equally reliable across tools. Official entrypoint files should be generated and kept current:
+Official entrypoint files are generated and kept current:
 
 - `AGENTS.md` for Codex and other generic coding agents
 - `CLAUDE.md` for Claude Code
 
+Each tool should receive each rule body once, through the mechanism it actually reads:
+
+- Claude Code loads rule bodies from `.claude/rules/`. `CLAUDE.md` carries only the project context and a rule index; repeating the bodies there would load every rule twice.
+- Codex reads `AGENTS.md` and nothing under `.codex/rules/` (that folder holds Starlark `.rules` command policies). `AGENTS.md` inlines always-on rules and indexes path-scoped ones, and must stay under Codex's default 32 KiB `project_doc_max_bytes`. The sync prints a warning when it does not.
+
 Do not edit the generated shared-rules section directly. Update `.ai/entrypoints/project-context.md` or `.ai/rules/*.md`, then run the agent asset sync command.
+
+## Rule Scope
+
+- A rule with `paths` frontmatter is path-scoped. Claude Code loads it when it reads a matching file; the generated index tells Codex to read it before touching matching files.
+- A rule without `paths` is always on and loads in every session. Keep always-on rules few and short.
+- Path-scoped rules load on file reads, not before them. A rule that must shape planning before any file is opened should stay always on.
 
 ## Shared vs Tool-Specific Content
 

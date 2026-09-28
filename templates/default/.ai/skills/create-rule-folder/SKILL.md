@@ -68,6 +68,7 @@ The global agent reference is not the primary storage for detailed rules. It sho
 `.ai/rules/<area>-rules-reference.md` should define:
 
 - Which paths or work types trigger this rule set
+- The same trigger paths as `paths` frontmatter, so Claude Code loads the reference only when it reads a matching file and the generated rule index lists it for Codex. Leave `paths` out only when the rule must be in every session.
 - The canonical local index and topic docs
 - The read order before editing related code
 - Cross-area docs that must also be read
@@ -252,6 +253,12 @@ If this is a reorganization of an **existing** rules folder rather than a new on
 ## Global Reference Template
 
 ```markdown
+---
+paths:
+  - "<primary path>/**"
+  - "<related path>/**"
+---
+
 # <Area> Rules Reference
 
 When work touches any of these areas, read the local rules first:

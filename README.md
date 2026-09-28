@@ -15,7 +15,11 @@ This project is not published to the npm registry yet. The recommended setup flo
 Agent Assets Kit keeps human-maintained agent assets in one canonical place, then generates or links the files each agent runtime expects.
 
 - `.ai/entrypoints/project-context.md` becomes the project-specific context inside `AGENTS.md` and `CLAUDE.md`.
-- `.ai/rules/*.md` are rendered into the shared rules sections of `AGENTS.md` and `CLAUDE.md`.
+- `.ai/rules/*.md` are synced into `.claude/rules`, `.agent/rules`, and `.agents/rules`, and listed in a rule index inside `AGENTS.md` and `CLAUDE.md`. Each tool gets each rule body once:
+  - Claude Code loads rule bodies from `.claude/rules/`, so `CLAUDE.md` carries only the index.
+  - Codex reads only `AGENTS.md` (32 KiB by default), so `AGENTS.md` inlines always-on rules and indexes path-scoped ones. The sync warns when `AGENTS.md` goes over that budget.
+  - A rule with `paths` frontmatter is path-scoped: Claude Code loads it only when it reads a matching file, and Codex is told to read it before touching matching files. A rule without `paths` is always on.
+  - `.codex/rules/` is not a target: Codex uses that folder for Starlark `.rules` command policies and ignores Markdown. The sync removes Markdown copies left there by older versions.
 - `.ai/skills/*` are synced into `.agent/skills`, `.agents/skills`, `.claude/skills`, and `.codex/skills`.
 - `.ai/commands/*` are copied into tool-specific command folders where supported.
 - `scripts/sync-agent-assets.mjs` prefers symlinks for shared folders and falls back to copying when symlinks are unavailable.
@@ -159,7 +163,6 @@ after you have reviewed them. `doctor` reports the same counts without writing a
 scripts/sync-agent-assets.mjs
 AGENTS.md
 CLAUDE.md
-.codex/rules
 .codex/skills
 .claude/rules
 .claude/skills
@@ -248,7 +251,7 @@ Then add a global agent reference when future agents must read those docs before
 .ai/rules/<area>-rules-reference.md
 ```
 
-The reference should define triggering paths, canonical sources, and read order. It should not become the primary storage for detailed rules.
+The reference should define triggering paths, canonical sources, and read order. It should not become the primary storage for detailed rules. Put the triggering paths in `paths` frontmatter as well, so Claude Code loads the reference only when it reads a matching file and the generated rule index can point Codex to it.
 
 The local `<area>-rules.md` should work as a local rule index with:
 
