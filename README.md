@@ -226,6 +226,16 @@ The installer symlinks each tracked skill into:
 
 Use `node scripts/install-global-skills.mjs --force` when an existing skill path should be replaced with the repository-tracked version.
 
+## Claude Code Mods
+
+Claude Code mods are personal plugins of function hooks (live panes, bands above the prompt, status lines) that run inside every Claude Code session on a machine. Keep them in this repo under `mods/`.
+
+| Mod | Location | Capability |
+| --- | --- | --- |
+| `session-board` | `mods/session-board` | Shows every running Claude Code session on the machine (Claude Desktop and CLI, e.g. Orca terminals) above the prompt, grouped by account, with task title, status, an environment badge, collapse, manual dismiss, and click-to-jump. |
+
+A mod is loaded by pointing `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of `~/.claude/settings.json` at its folder in this repo (a `:`-separated path list), so `git pull` updates it. Each mod's README lists its install steps and the environment assumptions to check on a new machine.
+
 ## Core Workflow
 
 1. Maintain shared agent content in `.ai/`.

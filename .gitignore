@@ -5,6 +5,10 @@ node_modules
 .DS_Store
 **/.DS_Store
 
+# Claude Code mods：引擎載入 mod 時自動產生的型別與 tsconfig，每次載入都會重寫，不進版控
+mods/*/.claude-plugin/types/
+mods/*/tsconfig.json
+
 # Logs
 logs
 *.log

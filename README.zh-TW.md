@@ -224,6 +224,16 @@ installer 會把每個追蹤中的 skill symlink 到：
 
 如果既有 skill path 要改成指向這個 repo 維護的版本，使用 `node scripts/install-global-skills.mjs --force`。
 
+## Claude Code Mods
+
+Claude Code mods 是個人的 function hooks plugin（即時面板、prompt 上方的看板、status line 等），會在一台機器的每個 Claude Code session 裡執行。這類內容放在本 repo 的 `mods/`。
+
+| Mod | 位置 | 功能 |
+| --- | --- | --- |
+| `session-board` | `mods/session-board` | 在 prompt 上方依帳號分組列出這台機器所有進行中的 Claude Code session（Claude Desktop 與 CLI，例如 Orca 終端），顯示任務標題、狀態、環境 badge，可開合、手動移除，點擊即跳轉。 |
+
+安裝方式是在 `~/.claude/settings.json` 的 `env` 設定 `CLAUDE_CODE_PLUGIN_DIRS`，指向本 repo 裡的 mod 資料夾（多個路徑用 `:` 串接），之後 `git pull` 就會更新。每個 mod 的 README 都有安裝步驟，以及換機器時要檢查的環境假設。
+
 ## 核心工作流
 
 1. 所有 shared agent content 都維護在 `.ai/`。

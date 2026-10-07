@@ -1,0 +1,6 @@
+{
+  "name": "session-board",
+  "version": "0.1.0",
+  "description": "跨 Claude app（A 帳號）與 Orca（B 帳號）的 session 看板：顯示執行中／完成／等你回應，點擊即跳轉",
+  "types": "./types/index.d.ts"
+}
