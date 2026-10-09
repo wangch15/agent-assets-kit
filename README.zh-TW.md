@@ -230,7 +230,8 @@ Claude Code mods 是個人的 function hooks plugin（即時面板、prompt 上�
 
 | Mod | 位置 | 功能 |
 | --- | --- | --- |
-| `session-board` | `mods/session-board` | 在 prompt 上方依帳號分組列出這台機器所有進行中的 Claude Code session（Claude Desktop 與 CLI，例如 Orca 終端），顯示任務標題、狀態、環境 badge，可開合、手動移除，點擊即跳轉。 |
+| `session-board` | `mods/session-board` | 在右側 Pane 依帳號分組列出這台機器所有進行中的 Claude Code session（Claude Desktop 與 CLI，例如 Orca 終端），顯示狀態 icon、任務標題、環境 badge，用戶分組可開合、可手動移除，點擊即跳轉。`/board` 打開／關閉 Pane。 |
+| `token-usage` | `mods/token-usage` | 在輸入框上方顯示 5h／7d 額度（已用百分比、時段經過標記、重置倒數）、本 session 的輸入／輸出／快取讀取 token 加總與估算花費。Desktop 畫有 icon 與 tooltip 的膠囊，終端畫一行文字。 |
 
 安裝方式是在 `~/.claude/settings.json` 的 `env` 設定 `CLAUDE_CODE_PLUGIN_DIRS`，指向本 repo 裡的 mod 資料夾（多個路徑用 `:` 串接），之後 `git pull` 就會更新。每個 mod 的 README 都有安裝步驟，以及換機器時要檢查的環境假設。
 

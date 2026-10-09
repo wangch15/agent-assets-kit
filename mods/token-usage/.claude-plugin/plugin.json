@@ -1,0 +1,6 @@
+{
+  "name": "token-usage",
+  "version": "0.1.0",
+  "description": "輸入框上方的用量條：5h／7d 額度、本 session 的 token 加總與估算花費",
+  "types": "./types/index.d.ts"
+}
