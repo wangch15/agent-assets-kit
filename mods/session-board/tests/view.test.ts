@@ -1,4 +1,5 @@
-// 整合測試：模擬 ~/.claude/sessions 註冊表與 ps，啟動 session 後在 desktop／terminal 畫看板
+// 整合測試：模擬 ~/.claude/sessions 註冊表與 ps，啟動 session 後在 desktop／terminal 的右側 Pane 畫看板
+import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 const HOME = '/Users/me'
@@ -68,19 +69,24 @@ function badgeAlt(found: { children: unknown[] } | undefined): unknown {
   return svg?.props?.alt
 }
 
-const BAND = {
-  component: 'AbovePrompt',
+const PANE = {
+  component: 'Pane',
+  requestId: 'session-board',
   props: {
-    hasSurvey: false,
-    isWorking: false,
-    maxRows: 20,
-    bodyColumns: 100,
-    scroll: { offset: 0, bodyRows: 20 },
+    title: 'Sessions',
+    isFocused: false,
+    bodyColumns: 46,
+    placement: 'dock',
+    scroll: { offset: 0, bodyRows: 40 },
     view: {},
   },
 } as const
 
-test('列出所有活著的 session，依用戶分組，可開合', async ($, on) => {
+type PaneCall = { readonly op: 'open' | 'close'; readonly id: string }
+
+/** 共用的引擎替身：檔案、行程、帳號；回傳記錄 Pane 開關的陣列 */
+/** notPlacedReason：模擬 Pane 擺不上畫面（窄終端、舊版 app） */
+function stubEngine(on: On, openPanes: () => readonly string[], notPlacedReason?: string) {
   mock.clock(on)
   mock.store(on, { accounts: { 'uuid-a': { name: 'Alice', email: 'alice@x.com' } } })
   mock.env(on, {
@@ -90,12 +96,24 @@ test('列出所有活著的 session，依用戶分組，可開合', async ($, on
     CLAUDE_CODE_SESSION_ID: 'self',
   })
   const logs: string[] = []
+  const paneCalls: PaneCall[] = []
   on('ui.log', (_$, e) => {
     logs.push(JSON.stringify(e))
     return { value: undefined } as never
   })
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('command.register', () => ({ value: { name: 'board' } }) as never)
+  on('ui.open', (_$, e) => {
+    paneCalls.push({ op: 'open', id: e.id })
+    return { value: notPlacedReason ? { isPlaced: false, reason: notPlacedReason } : { isPlaced: true } }
+  })
+  on('ui.close', (_$, e) => {
+    paneCalls.push({ op: 'close', id: e.id })
+    return { value: undefined } as never
+  })
+  on('ui.panes', () => ({
+    value: openPanes().map(id => ({ id, title: 'Sessions', isShown: true, isFocused: false, isPlaced: true })),
+  }))
   on('fs.list', (_$, e) => ({ value: listing(e.path) }) as never)
   on('fs.read', (_$, e) => {
     const text = FILES[e.path]
@@ -106,12 +124,28 @@ test('列出所有活著的 session，依用戶分組，可開合', async ($, on
   }))
   on('process.run', (_$, e) => ({ value: runResult(e.argv) }) as never)
   on('ui.render', () => null as never)
+  return { logs, paneCalls }
+}
 
-  await $.session.start({ cwd: '/Users/me/GitHub/bd2db', surface: 'desktop', isInteractive: true })
+const START = { cwd: '/Users/me/GitHub/bd2db', surface: 'desktop', isInteractive: true } as const
+/** 使用者在輸入框打 /board */
+const BOARD_COMMAND = {
+  command: 'board',
+  args: '',
+  origin: { kind: 'composer' },
+  presentation: { isFullscreen: true, columns: 200 },
+} as const
 
+test('列出所有活著的 session，依用戶分組，可開合', async ($, on) => {
+  const { logs, paneCalls } = stubEngine(on, () => [])
+
+  await $.session.start(START)
+
+  // 啟動時自動打開右側 Pane
+  expect(paneCalls).toEqual([{ op: 'open', id: 'session-board' }])
   expect(logs).toEqual([])
   for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'session-board', surface, ...BAND })
+    const ui = await $.ui.mount({ plugin: 'session-board', surface, ...PANE })
     // 用戶名分組
     expect(await ui.find({ key: 'toggle-uuid-a' })).toBeDefined()
     expect(await ui.find({ key: 'toggle-uuid-b' })).toBeDefined()
@@ -126,6 +160,9 @@ test('列出所有活著的 session，依用戶分組，可開合', async ($, on
       expect(badgeAlt(await ui.find({ key: 'badge-self' }))).toBe('Claude Desktop')
       expect(badgeAlt(await ui.find({ key: 'badge-orca' }))).toBe('Claude Code CLI')
     } else {
+      // 終端沒有 SVG：狀態與環境用替代字元
+      expect(await ui.find({ type: 'Text', text: '◆' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: '●' })).toBeDefined()
       expect(await ui.find({ type: 'Text', text: /Claude Desktop/ })).toBeDefined()
       expect(await ui.find({ type: 'Text', text: /Claude Code CLI/ })).toBeDefined()
     }
@@ -144,4 +181,26 @@ test('列出所有活著的 session，依用戶分組，可開合', async ($, on
     }
     await ui.unmount()
   }
+})
+
+test('/board 開關右側 Pane', async ($, on) => {
+  let open: readonly string[] = []
+  const { paneCalls } = stubEngine(on, () => open)
+  await $.session.start(START)
+  paneCalls.length = 0
+
+  open = ['session-board']
+  expect((await $.command.run(BOARD_COMMAND)).text).toBe('Session 看板已關閉')
+  open = []
+  expect((await $.command.run(BOARD_COMMAND)).text).toBe('Session 看板已打開')
+  expect(paneCalls).toEqual([
+    { op: 'close', id: 'session-board' },
+    { op: 'open', id: 'session-board' },
+  ])
+})
+
+test('/board 打開但擺不上畫面時，說明原因', async ($, on) => {
+  stubEngine(on, () => [], '終端只有 100 欄')
+  await $.session.start(START)
+  expect((await $.command.run(BOARD_COMMAND)).text).toContain('終端只有 100 欄')
 })

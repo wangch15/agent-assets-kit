@@ -24,6 +24,7 @@ import {
   pruneDismissed,
   withoutDismissed,
 } from '../hooks/board'
+import { iconGroup, iconSvg } from '../hooks/icons'
 
 const base: BoardEntry = {
   sessionId: 's1',
@@ -192,5 +193,18 @@ describe('標題列計數', () => {
       { status: 'needs-input', count: 1 },
       { status: 'done', count: 2 },
     ])
+  })
+})
+
+describe('icon', () => {
+  test('執行中會轉、等你回應會呼吸、已完成靜止；顏色由呼叫端決定', () => {
+    expect(iconSvg('running', '#3B82F6')).toContain('animateTransform')
+    expect(iconSvg('needs-input', '#F59E0B')).toContain('<animate ')
+    expect(iconSvg('done', '#22C55E')).not.toContain('animate')
+    expect(iconSvg('user', '#123456')).toContain('stroke="#123456"')
+  })
+
+  test('badge 內嵌 icon 依大小縮放', () => {
+    expect(iconGroup('cli', '#fff', 8, 3.5, 11)).toContain('translate(8 3.5) scale(0.6875)')
   })
 })

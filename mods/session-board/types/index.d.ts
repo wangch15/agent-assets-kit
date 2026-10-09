@@ -31,7 +31,6 @@ declare module 'claude-code' {
     'session-board': {
       entries: readonly BoardEntry[]
       selfId: string
-      isCollapsed: boolean
       collapsedUsers: readonly string[]
       /** 手動移除的 session（sessionId@statusSince），狀態再變就會重新出現 */
       dismissed: readonly string[]

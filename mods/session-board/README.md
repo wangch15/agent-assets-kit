@@ -1,13 +1,15 @@
 # session-board
 
-Claude Code mod：在每個 session 的輸入框上方顯示一個看板，依「用戶（帳號）」分組列出這台電腦上所有進行中的 Claude Code session，包括 Claude Desktop 和 CLI（例如 Orca 終端）。點擊任一列就能跳到那個 session。
+Claude Code mod：在每個 session 的右側 Pane（側邊欄）顯示一個看板，依「用戶（帳號）」分組列出這台電腦上所有進行中的 Claude Code session，包括 Claude Desktop 和 CLI（例如 Orca 終端）。點擊任一列就能跳到那個 session。
 
 - **任務標題：**
   - Desktop 用 app 裡的 session 標題。
   - CLI 用 `/rename` 的名稱，沒有的話用 transcript 裡 AI 產生的標題。
-- **狀態：** 等你回應、執行中、已完成（各有顏色），標題列顯示各狀態數量。
+- **狀態：** 等你回應、執行中、已完成（各有顏色與 icon；執行中會轉、等你回應會呼吸），標題列顯示各狀態數量。
+- **Icon：** Desktop 用 SVG 線條 icon（看板、用戶、專案資料夾、環境、狀態）；終端改用不會被畫成 emoji 的字元（`◆` 等你回應、`●` 執行中、`✓` 已完成）。
 - **環境 badge：** `Claude Desktop`／`Claude Code CLI`。
-- **開合：** 整個看板和每個用戶分組都可以開合，`/board` 指令可收合／展開整個看板。
+- **位置：** 右側 Pane。session 啟動時自動打開：Desktop 與 144 欄以上的全螢幕終端會直接擺在右側，較窄的終端要打 `/board` 才會出現。Pane 右上角的關閉鈕或 `/board` 可關閉。
+- **開合：** 每個用戶分組都可以開合。
 - **移除：** 每列的 `✕` 可以手動移除該列，該 session 之後狀態改變（再次執行或需要你回應）會自動重新出現。
 - **跳轉：**
   - Desktop session 開啟 `claude://code/continue?session=<hostSessionId>`。
@@ -38,6 +40,7 @@ mods/session-board/
   hooks/hooks.json             # 指向 register.tsx
   hooks/register.tsx           # 讀取 session、補用戶名與標題、跳轉
   hooks/view.tsx               # 看板畫面與樣式（Desktop／terminal 各自調整）
+  hooks/icons.ts               # SVG 線條 icon 與終端替代字元
   hooks/board.ts               # 純邏輯：解析、分組、排序、移除、跳轉指令
   types/index.d.ts             # $.state 型別契約
   tests/*.test.ts              # claude plugin test 跑的測試
@@ -82,6 +85,7 @@ mods/session-board/
   - 但如果新機器用多個 `CLAUDE_CONFIG_DIR` 來切換 CLI 帳號，目前只會讀預設那一份 `~/.claude.json`。
 - **Orca CLI 位置：** 依序找 `orca`、`/usr/local/bin/orca`、`/opt/homebrew/bin/orca`（見 `register.tsx` 的 `ORCA_FALLBACKS`）。沒裝 Orca 不影響看板，只是 CLI session 不能跳轉。
 - **Desktop 深層連結：** `claude://code/continue?session=<hostSessionId>` 是從 Claude Desktop app 內部找到的，不是公開文件記載的介面；新版 app 改掉的話，跳轉會失效。
+- **Pane 支援：** 看板畫在 Pane 裡。舊版 Claude Desktop 不擺 Pane（`$.ui.open` 會回 `isPlaced: false`），要更新 app；終端在 144 欄以下不會自動打開，打 `/board` 即可。
 - **`awk`：** 用 macOS 內建 awk 撈標題；transcript 裡標題含跳脫的 `"` 時可能截斷。
 
 ## 開發

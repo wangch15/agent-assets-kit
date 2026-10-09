@@ -1,5 +1,5 @@
 // session-board：讀 Claude Code 自己維護的 session 註冊表（~/.claude/sessions/<pid>.json），
-// 在 prompt 上方依「用戶」分組列出這台電腦所有進行中的 session（Desktop 與 CLI 皆可），點擊即跳轉。
+// 在右側 Pane 依「用戶」分組列出這台電腦所有進行中的 session（Desktop 與 CLI 皆可），點擊即跳轉。
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
@@ -34,7 +34,6 @@ import { BoardView } from './view'
 
 const entriesAtom = atom({ plugin: 'session-board', key: 'entries' } as const, [])
 const selfIdAtom = atom({ plugin: 'session-board', key: 'selfId' } as const, '')
-const collapsedAtom = atom({ plugin: 'session-board', key: 'isCollapsed' } as const, false)
 const collapsedUsersAtom = atom({ plugin: 'session-board', key: 'collapsedUsers' } as const, [])
 const dismissedAtom = atom({ plugin: 'session-board', key: 'dismissed' } as const, [])
 
@@ -44,6 +43,8 @@ const PROFILE_URL = 'https://api.anthropic.com/api/oauth/profile'
 const ACCOUNT_CACHE_KEY = 'accounts'
 const DISMISSED_KEY = 'dismissed'
 const DESKTOP_SESSIONS = 'Library/Application Support/Claude/claude-code-sessions'
+/** 右側 Pane：docked 時希望的寬度（欄數），使用者拖過的寬度優先 */
+const PANE = { id: 'session-board', title: 'Sessions', columns: 46 } as const
 
 type $ = EngineInterface
 type CachedTitle = { readonly title: string; readonly checkedAt: number }
@@ -286,6 +287,17 @@ async function ownSessionId($: $): Promise<string> {
   }
 }
 
+/** /board：Pane 開著就關掉，沒開（或還沒擺上畫面）就打開 */
+async function togglePane($: $): Promise<string> {
+  const pane = (await $.ui.panes()).find(p => p.id === PANE.id)
+  if (pane?.isPlaced) {
+    await $.ui.close({ id: PANE.id })
+    return 'Session 看板已關閉'
+  }
+  const opened = await $.ui.open(PANE)
+  return opened.isPlaced ? 'Session 看板已打開' : `Session 看板已打開，但目前無法顯示：${opened.reason}`
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     try {
@@ -294,32 +306,26 @@ export const register: Register = on => {
       $.ui.log(`session-board: 初始化失敗：${String(error)}`)
     }
     $.clock.every(POLL_MS, () => void refresh($))
-    await $.command.register({ name: 'board', description: '收合／展開 session 看板' })
+    await $.command.register({ name: 'board', description: '打開／關閉右側的 session 看板' })
+    // 自動打開：Desktop 與夠寬的全螢幕終端會擺在右側；太窄的終端會等到使用者 /board 才出現
+    void $.ui.open(PANE).catch(error => $.ui.log(`session-board: 打開看板失敗：${String(error)}`))
     return next(e)
   })
 
-  on('command.run', { command: 'board' }, async $ => {
-    const isCollapsed = await read($, collapsedAtom)
-    await update($, collapsedAtom, () => !isCollapsed)
-    return { text: isCollapsed ? 'Session 看板已展開' : 'Session 看板已收合' }
-  })
+  on('command.run', { command: 'board' }, async $ => ({ text: await togglePane($) }))
 
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const entries = await read($, entriesAtom)
-    if (e.props.hasSurvey || entries.length === 0) return next(e)
-    return BoardView(
+  on('ui.render', { component: 'Pane', requestId: PANE.id }, async ($, e) =>
+    BoardView(
       $.ui.resolve(e),
       {
-        entries,
+        entries: await read($, entriesAtom),
         selfId: await read($, selfIdAtom),
-        isCollapsed: await read($, collapsedAtom),
         collapsedUsers: await read($, collapsedUsersAtom),
-        onToggleBoard: () => update($, collapsedAtom, v => !v),
         onToggleUser: userKey => update($, collapsedUsersAtom, list => toggleIn(list, userKey)),
         onJump: entry => runJump($, entry),
         onDismiss: entry => dismiss($, entry),
       },
       e.surface === 'desktop',
-    )
-  })
+    ),
+  )
 }
